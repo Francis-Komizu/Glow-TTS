@@ -23,6 +23,7 @@ class TextMelLoader(torch.utils.data.Dataset):
         self.load_mel_from_disk = hparams.load_mel_from_disk
         self.add_noise = hparams.add_noise
         self.add_blank = getattr(hparams, "add_blank", False) # improved version
+        self.cleaned_text = getattr(hparams, "cleaned_text", False)
         self.stft = commons.TacotronSTFT(
             hparams.filter_length, hparams.hop_length, hparams.win_length,
             hparams.n_mel_channels, hparams.sampling_rate, hparams.mel_fmin,
@@ -58,7 +59,10 @@ class TextMelLoader(torch.utils.data.Dataset):
         return melspec
 
     def get_text(self, text):
-        text_norm = text_to_sequence(text, self.text_cleaners)
+        if self.cleaned_text:
+            text_norm = cleaned_text_to_sequence(text)
+        else:
+            text_norm = text_to_sequence(text, self.text_cleaners)
         if self.add_blank:
             text_norm = commons.intersperse(text_norm, len(symbols)) # add a blank token, whose id number is len(symbols)
         text_norm = torch.IntTensor(text_norm)
